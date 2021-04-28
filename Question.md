@@ -111,7 +111,8 @@ rpm -qa | grep jdk
 rpm -qa | grep gcj
 yum list java-1.8*
 yum install java-1.8.0-openjdk* -y
-java -version 
+java -version
+```
 
 #### Nginx
 
