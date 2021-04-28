@@ -65,9 +65,143 @@ http {
 
 ----
 
-### 项目部署时相关配置？
+### 项目部署时相关配置（待改善）？
 
+#### Docker
 
+由于使用了 MySQL 与 Redis，所以为了方便使用 Docker 来安装服务器上 MySQL 与 Redis 的环境。
+
+```sh
+# 安装 docker 所需软件包
+sudo yum install -y yum-utils device-mapper-persistent-data lvm-2
+# 设置官方源
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+# 可以安装最新版本的 Docker Engine-Community 和 containerd
+# sudo yum install docker-ce docker-ce-cli containerd.io
+# 也可以手动选择特定版本的 Docker Engine-Community
+# 列出当前存储库中可用版本的 Docker Engine-Community
+yum list docker-ce --showduplicates | sort -r
+# 安装
+sudo yum install docker-ce-19.03.8 docker-ce-cli-19.03.8 containerd.io
+# 启动 docker
+systemctl start docker
+# 运行自带的 hello-world 镜像测试 docker 是否正常运行
+sudo docker run hello-world
+# 可以配置阿里云镜像加速器来提高拉取镜像的速度
+# cd /etc/docker/
+# vim daemon.json
+# 加上阿里云镜像 {"registry-mirrors":["https://phkq1uwz.mirror.aliyuncs.com"]}
+# 配置完成后需要重启 docker 服务
+# sudo systemctl daemon-reload
+# sudo systemctl restart docker
+# 安装 MySQL, 首先搜索可用的 MySQL 版本
+docker search mysql
+# 直接拉取官方的最新的版本
+docker pull mysql:latest
+# 启动 MySQL 并映射 docker 容器中 MySQL 服务的端口到宿主机的端口
+docker run -itd --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 -d mysql
+# 安装 Redis, 这里直接拉取最新版本
+docker pull redis:latest
+# 启动 Redis 并映射 docker 容器中 Redis 服务的端口到宿主机的端口
+docker run -itd --name redis -p 6379:6379 redis
+# 若存在自带 JDK 则将其移除并重新安装 JDK
+java -version
+rpm -qa | grep java
+rpm -qa | grep jdk
+rpm -qa | grep gcj
+yum list java-1.8*
+yum install java-1.8.0-openjdk* -y
+java -version 
+
+#### Nginx
+
+```sh
+# 首先修改 Nginx 的源, 需要预先安装 yum-utils
+sudo yum install -y yum-utils
+sudo vim /etc/yum.repos.d/nginx.repo
+# 向 nginx.repo 文件中添加如下内容
+[nginx-stable]
+name=nginx stable repo
+baseurl=http://nginx.org/packages/centos/$releasever/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=https://nginx.org/keys/nginx_signing.key
+
+[nginx-mainline]
+name=nginx mainline repo
+baseurl=http://nginx.org/packages/mainline/centos/$releasever/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=https://nginx.org/keys/nginx_signing.key
+
+# 安装
+sudo yum install -y nginx
+```
+
+#### 项目脚本
+
+```sh
+# 创建一个 nohup.out 文件
+touch nohup.out
+# 启动脚本 start.sh
+nohup java -jar erp-server.jar --spring.profiles.active=prod &
+# 停止脚本 stop.sh
+PID=$(ps -ef | grep erp-server.jar | grep -v grep | awk '{ print $2 }')
+if [ -z "$PID" ]
+then
+echo Application is already stopped
+else
+echo kill $PID
+kill $PID
+fi
+# 查看日志脚本 log.sh
+tail -f nohup.out
+# 清理日志脚本 clean_log.sh
+cp /dev/null nohup.out
+# 在运行上述脚本前需要先赋予可执行的权限
+chmod +x ./start.sh
+chmod +x ./stop.sh
+chmod +x ./log.sh
+chmod +x ./clean_log.sh
+```
+
+#### Nginx 配置文件
+
+```conf
+server {
+        listen       9881;
+        server_name  114.55.255.214;
+
+        #charset utf-8;
+        
+        # 开启 gzip
+        gzip on;
+        # 低于 1kb 的资源不压缩
+        gzip_min_length 1k;
+        # 设置压缩所需要的缓冲区大小
+        gzip_buffers 4 16k;
+        # 压缩级别 (1-9), 压缩级别越大压缩率越高, 同时消耗的 CPU 资源也就越多
+        gzip_comp_level 6;
+        # 需要压缩哪些响应类型的资源
+        gzip_types text/css text/javascript application/javascript;
+        # 配置禁用 gzip 的条件, 支持正则, 在这里表示 IE6 及以下不启用 gzip
+        gzip_disable "MSIE [1-6]\.";
+        # 是否添加 "Vary: Accept-Encoding" 响应头
+        gzip_vary on;
+
+        index index.html;
+        # dist 上传的路径
+        root /root/dist;
+        # 避免访问出现 404 错误
+        location / {
+            try_files $uri $uri/ @router;
+            index index.html;
+        }
+        location @router {
+            rewrite ^.*$ /index.html last;
+        }
+    }
+```
 
 ----
 
@@ -78,6 +212,12 @@ http {
 ----
 
 ### MyBatis 中批量插入的实现？
+
+
+
+----
+
+### MyBatis 如何防止 SQL 注入？
 
 
 
@@ -162,6 +302,12 @@ http {
 ----
 
 ### 用了什么设计模式？
+
+
+
+----
+
+### 工厂设计模式？
 
 
 
