@@ -326,7 +326,7 @@ Statement 接口则是定义了基本的 SQL 的执行。
 
 ----
 
-### Spring Cloud 的了解？
+### 对 Spring Cloud 的了解？
 
 
 
@@ -368,13 +368,163 @@ Statement 接口则是定义了基本的 SQL 的执行。
 
 ### Ajax 的原理？
 
+- Ajax 是一种异步请求数据的 WEB 开发技术，简单来说，在不需要重新刷新页面的情况下，Ajax 通过异步请求加载后台数据，并在网页上呈现出来。
 
+- Ajax 最核心的依赖是浏览器提供的 XMLHttpRequest 对象
+
+- Ajax 的使用
+
+    - 创建 Ajax 核心对象 XMLHttpRequest（需要考虑兼容性）
+
+        ```javascript
+        var xhr = null;
+        if (window.XMLHttpRequest) {
+            // IE7+, Firefox, Chrome, Opera, Safari
+            xhr = new XMLHttpRequest();
+        } else {
+            // IE6, IE5
+            xhr = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        ```
+
+    - 向服务器发送请求
+
+        ```javascript
+        // method: 请求的类型（GET, POST, PUT, DELETE）
+        // url: 请求地址
+        // async: 是否为异步请求
+        xhr.open(method, url, async);
+        // 请求体
+        xhr.send(string);
+        
+        // 例如: 
+        xhr.open("POST", "http://127.0.0.1:8080/api/user", true);
+        // 设置模拟提交表单数据的请求头
+        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhr.send("name=TestName&password=123456");
+        ```
+
+    - 处理服务器的响应
+
+        ```javascript
+        // 每当 readyState 属性发生变化时, 就会调用 onreadystatechange 函数
+        xhr.onreadystatechange = function() {
+            // readyState 用于标识当前 XMLHttpRequest 对象处于什么状态, 共有 5 个值
+            // 0: 请求未初始化（还没有调用 open()）
+            // 1: 请求已建立, 但是还没发送（还没有调用 send()）
+            // 2: 请求已接收（通常在这个状态可以从响应中获取内容头）
+            // 3: 请求处理中
+            // 4: 请求已完成, 且响应已就绪
+            if (xhr.readyState === 4) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    // 响应成功处理
+                    console.log(xhr.responseText);
+                } else {
+                    // 响应失败处理
+                }
+            }
+        }
+        ```
 
 ----
 
 ### 谈谈你对 JWT 的理解？
 
+JWT（JSON Web Token）是目前最流行的跨域认证解决方案。
 
+#### 跨域认证的问题
+
+用户认证流程一般是这样：
+
+- 用户向服务器发送用户名和密码
+- 服务器验证通过后，在当前 Session 中保存相关数据，例如用户角色、登录时间等
+- 服务器向用户返回一个 session_id，写入用户的 Cookie
+- 用户在此之后的每一次请求，都会通过 Cookie 将 session_id 传回服务器
+- 服务器收到 session_id，找到之前保存的数据，由此得知用户的身份
+
+这种方式的问题在于，扩展性不好。在单机上的话这种方式没有任何问题，但是当部署到集群上去，或者说是跨域的服务导向架构，那么就需要 Session 数据共享，每台服务器都能够读取到 Session。
+
+一种解决方案是 Session 数据持久化，写入数据库或者别的持久层。在各种服务收到请求后，都向持久层请求数据。这种方案的优点是架构清晰，缺点是工程量比较大。并且，如果持久层挂了，就会单点失败。
+
+另一种解决方案是服务器干脆就不保存 Session 数据了，所有的数据都保存在客户端，每次请求都发回服务器。JWT 就是这种方案的一个代表。
+
+#### JWT 原理
+
+JWT 的原理是服务器认证之后，生成一个 JSON 对象，发回给用户。在这之后用户与服务端通信的时候，都要发回这个 JSON 对象。服务器完全只靠这个 JSON 对象认定用户身份。为了防止用户篡改数据，服务器在生成这个对象的时候，会加上签名。这时候服务器就不保存任何 Session 数据了，也就是说服务端变成无状态的了。
+
+#### JWT 结构
+
+实际的 [JWT](https://jwt.io/) 可能像这样：
+
+```json
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+它是一个很长的字符串，中间用 `.` 分隔成三个部分。
+
+JWT 的三个部分（Header\.Payload\.Signature）：
+
+- 头部（Header）
+
+    Header 部分是一个 JSON 对象，描述 JWT 的元数据。
+
+    ```json
+    {
+        "alg": "HS256",
+        "typ": "JWT"
+    }
+    ```
+
+    如上结构中，`alg` 属性表示签名的算法（algorithm），默认是 HMAC SHA256（HS256）；`typ` 属性表示这个令牌（token）的类型（type），JWT 令牌统一写为 `JWT`。最后，将这个 JSON 对象使用 Base64URL 算法转成字符串。
+
+- 负载（Payload）
+
+    Payload 部分也是一个 JSON 对象，用来存放实际需要传递的数据，JWT 规定了 7 个字段供选用：
+
+    - iss（issuer）：签发人
+    - exp（expiration time）：过期时间
+    - sub（subject）：主题
+    - aud（audience）：受众
+    - nbf（Not Before）：生效时间
+    - iat（Issued At）：签发时间
+    - jti（JWT ID）：编号
+
+    当然，除了规定的 7 个字段以外，也可以在这个部分添加私有字段。但是 JWT 默认是不加密的，所以不要将秘密信息放在这个部分。这个 JSON 对象也要使用 Base64URL 算法转成字符串。
+
+- 签名（Signature）
+
+    Signature 部分是对前两部分的签名，防止数据篡改。
+
+    首先，需要指定一个密钥（secret），这个密钥只有服务器才知道，不能泄露给用户，然后，使用 Header 里面指定的签名算法（默认是 HMAC SHA256），通过如下公式产生签名：
+
+    ```json
+    HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)
+    ```
+
+    算出签名之后，将 Header、Payload、Signature 三个部分拼成一个字符串，每个部分之间用 `.` 分隔，就可以返回给用户了。
+
+    之所以使用 Base64URL 算法，是因为 JWT 作为一个令牌（token），有些场合可能会放到 URL 中去，而 Base64 有三个字符 `+`、`/`、`=` 在 URL 中有特殊含义，所以需要替换掉，将 `=` 省略，`+` 替换为 `-`，`/` 替换为 `_`。
+
+#### 使用 JWT
+
+客户端收到服务器返回的 JWT，可以存储在 Cookie 中也可以存在 LocalStorage 里。在此之后，客户端每次与服务端通信，都要带上这个 JWT。可以将其放在 Cookie 中自动发送，但是这样不能跨域，所以可以将其放在 HTTP 请求头中的 `Authorization` 字段中。
+
+```http
+Authorization: Bearer <token>
+```
+
+另一种做法是，跨域的时候，JWT 放在 POST 请求的数据体里。
+
+#### JWT 的几个特点
+
+- JWT 默认是不加密的，但也可以加密。生成原始 Token 后，可以用密钥再加密一次。
+- JWT 不加密的情况下，一定不要将秘密信息写入 JWT。
+- JWT 不仅可以用于认证，也可以用于交换信息，有效使用 JWT，可以降低服务器查询数据库的次数。
+- JWT 最大的缺点是，由于服务器不保存 Session 状态，因此无法在使用过程中废除某个 Token，或者更改 Token 的权限，也就是说，一旦 JWT 签发了，在到期之前就会始终有效，除非服务器部署额外的逻辑。
+- JWT 本身包含了认证信息，一旦泄露，任何人都可以获得该 Token 的所有权限。为了减少盗用，JWT 的有效期应该设置得比较短。对于一些比较重要的权限，使用时应该再次对用户进行认证。
+- 为了减少盗用，建议使用 HTTPS 协议传输。
+
+参考链接：[JSON Web Token](http://www.ruanyifeng.com/blog/2018/07/json_web_token-tutorial.html)
 
 ----
 
@@ -428,33 +578,222 @@ Statement 接口则是定义了基本的 SQL 的执行。
 
 ### 单例模式？
 
+#### 单例设计要点
 
+- 一个类只能有一个实例（构造器私有化）
+- 必须自行创建这个实例（含有一个该类的静态变量来保存这个唯一的实例）
+- 必须自行向整个系统提供这个实例
+    - 直接暴露出去
+    - 用静态变量的 Get 方法获取
+
+#### 饿汉式（直接创建对象，不存在线程安全问题）
+
+- 直接实例化饿汉式（简洁直观）
+
+    ```Java
+    // SimpleSingleton.java
+    public class SimpleSingleton {
+        // 直接创建实例对象，不管调用方是否需要这个对象
+        public static final SimpleSingleton INSTANCE = new SimpleSingleton();
+        
+        private SimpleSingleton() { }
+    }
+    ```
+
+- 枚举式（最简洁）
+
+    ```Java
+    // SimpleSingleton.java
+    public enum SimpleSingleton {
+        INSTANCE
+    }
+    ```
+
+- 静态代码块饿汉式（适合复杂实例化）
+
+    ```Java
+    // src/data.properties
+    // 假设在 src 路径下有一个 data.properties 文件，其内容为 Pro=Akatsuki
+    
+    // 获取 Properties 文件中属性的单例
+    // 适用于创建单例对象时需要获取数据的场景
+    public class PropertySingleton {
+        public static final PropertySingleton INSTANCE;
+        
+        private String pro;
+        
+        static {
+            Properties properties = new Properties();
+            try {
+                properties.load(PropertySingleton.class.getClassLoader().getResourceAsStream("data.properties"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            INSTANCE = new PropertySingleton(properties.getProperty("Pro"));
+        }
+        
+        private PropertySingleton(String pro) {
+            this.pro = pro;
+        }
+        
+        public String getPro() {
+            return pro;
+        }
+    
+        public void setPro(String pro) {
+            this.pro = pro;
+        }
+    
+        @Override
+        public String toString() {
+            return "PropertySingleton{" +
+                    "pro='" + pro + '\'' +
+                    '}';
+        }
+    }
+    ```
+
+#### 懒汉式（延迟创建对象）
+
+- 线程不安全（适用于单线程）
+
+    ```Java
+    // LazySingleton.java
+    public class LazySingleton {
+        private static LazySingleton instance;
+        
+        private LazySingleton() { }
+        
+        // 在类初始化时不直接创建实例，而是在调用方需要时去主动获取实例
+        public static LazySingleton getInstance() {
+            if (instance == null) {
+                instance = new LazySingleton();
+            }
+            return instance;
+        }
+    }
+    ```
+
+- 线程安全（适用于多线程）
+
+    ```Java
+    // LazySingleton.java
+    public class LazySingleton {
+        // 这里使用 volatile 关键字主要是为了禁止指令重排序
+        private volatile static LazySingleton instance;
+        
+        private LazySingleton() { }
+        
+        // 在类初始化时不直接创建实例，而是在调用方需要时去主动获取实例
+        public static LazySingleton getInstance() {
+            if (instance == null) {
+                synchronized (LazySingleton.class) {
+                    if (instance == null) {
+                        instance = new LazySingleton();
+                    }
+                }
+            }
+            return instance;
+        }
+    }
+    ```
+
+- 静态内部类形式（适用于多线程）
+
+    ```Java
+    // LazySingleton.java
+    public class LazySingleton {
+        private LazySingleton() { }
+        
+        public static final LazySingleton getInstance() {
+            return LazySingletonHolder.INSTANCE;
+        }
+        
+        // 使用静态内部类的方式获取实例
+        // 这是利用了静态内部类不会随着外部类的加载和初始化而初始化的特性来实现的
+        private static class LazySingletonHolder {
+            private static final LazySingleton INSTANCE = new LazySingleton();
+        }
+    }
+    ```
 
 ----
 
 ### RESTful 风格是什么？
 
+- REST 即表现层状态转化（Representational State Transfer），其中表现层指的是资源（Resources）的表现层。所谓资源，就是网络上的一个实体，或者说是网络上的一个具体信息，它可以是一段文本、一张图片、一首歌曲、一种服务，可以用一个 URI（统一资源定位符）去指向它，每种资源对应一个特定的 URI，要获取这个资源，只需访问它的 URI 即可。
+- 资源是一种信息实体，它可以有多种外在表现形式，把资源具体呈现出来的形式，叫做它的表现层。URI 只代表资源的实体，不代表它的形式，它的具体表现形式，应该在 HTTP 请求头中用 Accept 和 Content-Type 字段指定，这两个字段才是对表现层的描述。
+- 访问一个网站，就代表了客户端和服务器的一个互动过程，在这个过程中，势必涉及到数据和状态的变化。HTTP 协议是一个无状态协议，这意味着，所有的状态都保存在服务器端，因此，如果客户端想要操作服务器，必须通过某种手段，让服务器端发生状态转化（State Transfer），而这种转化是建立在表现层上的，所以称之为表现层状态转化。
+- HTTP 协议里面，四个表示操作方式的动词：GET、POST、PUT、DELETE。它们分别对应四种基本操作：GET 用于获取资源；POST 用于新建资源（也可用于更新资源）；PUT 用于更新资源；DELETE 用于删除资源。
+- 总结一下就是：
+    - 每一个 URI 代表一种资源
+    - 客户端与服务器之间，传递这种资源的某种表现层
+    - 客户端通过四个 HTTP 动词，对服务器上的资源进行操作，实现表现层状态转化
 
+参考链接：
+
+[理解 RESTful 架构](https://www.ruanyifeng.com/blog/2011/09/restful.html)
+
+[RESTful API 设计指南](https://www.ruanyifeng.com/blog/2014/05/restful_api.html)
 
 ----
 
 ### 常用的 Linux 命令？
 
-
-
-----
-
-### UML 有了解过吗？说一下用例图、类图等？
-
-
+ls、cat、cd、df、free、top、ps、pwd、touch、history、tar 等等。
 
 ----
 
-### 单元测试有写过吗？黑盒白盒测试有了解过吗？
+### PUT 请求与 POST 请求的区别？
 
+最大的区别是 PUT 请求具有幂等性，而 POST 请求没有。这里的幂等性指的是多次发起 PUT 请求的结果与发起一次 PUT 请求的结果应当是相同的。
 
+-----
+
+### `@Configuration` 与 `@Component` 有什么区别？
+
+- `@Configuration` 中所有带 `@Bean` 注解的方法都会被动态代理，因此调用该方法返回的都是同一个实例。
+- `@Configuration` 标记的类必须符合以下条件：
+    - 配置类必须以类的形式提供（不能是工厂方法返回的实例），允许通过生成子类在运行时增强（CGLIB 动态代理）
+    - 配置类不能是 final 类（无法动态代理）
+    - 配置注解通常为了通过 `@Bean` 注解生成 Spring 容器管理的类
+    - 配置类必须是非本地的（即不能在方法中声明，不能是 private）
+    - 任何嵌套配置类都必须声明为 static
+    - `@Bean` 方法可能不会反过来创建进一步的配置类（也就是返回的 bean 如果带有 `@Configuration` ，也不会被特殊处理，只会作为最普通的 bean）
+
+参考链接：[@Configuration 与 @Component 区别](https://blog.csdn.net/isea533/article/details/78072133)
 
 ----
 
-### 编写过文档吗？
+### `@Autowired` 与 `@Resource` 以及 `@Inject` 的区别？
+
+- @Autowired 注解默认是按照类型装配依赖对象的（byType），默认情况下它要求依赖对象必须存在，当没有找到相应 bean 时，IOC 容器就会报错。若设置 @Autowired 注解的 required 属性为 false，则在找不到相应 bean 时就会注入 null，而不会报错。若需要按照名称来装配（byName），则可以结合 @Qualifier 注解一起使用。注意 @AutoWired 注解是 Spring 的注解。
+- @Resource 注解默认按照名称（byName）来装配依赖对象，是 JSR-250 标准的注解，需要导入 `javax.annotation.Resource` 包。Spring 将 @Resource 注解的 name 属性解析为 bean 的名称，而 type 属性则解析为 bean 的类型，所以当使用 name 属性则使用 byName 的注入策略，而使用 type 属性则使用 byType 的注入策略。如果两个属性都不指定，则会通过反射机制使用 byName 注入策略。
+- @Inject 注解默认是使用按照类型（byType）装配依赖对象，如果需要按名称进行装配，则需要结合 @Named 注解一起使用。@Inject 注解没有 required 属性，因此在找不到依赖对象时会报错。注意 @Inject 注解是 JSR-330 标准的注解，需要导入 `javax.inject.Inject` 包。
+- @Autowired 与 @Inject 是使用 `org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor` 来处理的，而 @Resource 则是使用 `org.springframework.context.annotation.CommonAnnotationBeanPostProcessor` 来处理的。
+
+----
+
+### wait() 与 sleep() 的区别？
+
+- 最主要的区别在于：`sleep()` 方法没有释放锁，而 `wait()` 方法释放了锁
+- 两者都可以暂停线程的执行
+- `wait()` 通常被用于线程间交互/通信，`sleep()` 通常被用于暂停执行
+- `wait()` 方法被调用后，线程不会自动苏醒，需要别的线程调用同一个对象上的 `notify()` 或者 `notifyAll()` 方法。而 `sleep()` 方法执行完成后，线程会自动苏醒。或者可以使用 `wait(long timeout)` 超时后线程会自动苏醒。
+
+----
+
+### String 与 StringBuilder 以及 StringBuffer 的区别？
+
+- 可变性
+    - String 类中使用 `final` 关键字来修饰字符数组来保存字符串，所以 String 是不可变的。（在 Java9 之后，从 char 数组变成了 byte 数组）
+    - StringBuilder 与 StringBuffer 都继承自 AbstractStringBuilder 类，在 AbstractStringBuilder 类中也是使用字符数组来保存字符串的，但是并没有使用 `final` 关键字来修饰，所以这两种对象都是可变的。（同样的在 Java9 之后，从 char 数组变为了 byte 数组）
+- 线程安全性
+    - String 中的对象是不可变的，也就可以理解为常量，故是线程安全的。StringBuffer 对方法加了同步锁或者对调用的方法加了同步锁，所以是线程安全的。StringBuilder 并没有对方法加同步锁，所以是非线程安全的。
+- 性能
+    - 每次对 String 类型进行修改操作时，都会生成一个新的 String 对象，然后将指针指向新的 String 对象（若字符串常量池中已有则不会生成直接指向已有的这个对象）。StringBuffer 每次都会对 StringBuffer 对象本身进行操作，而不是生成新的对象并改变对象引用。相同情况下使用 StringBuilder 比使用 StringBuffer 仅能获得 10%~15% 左右的性能提升，但是却要冒线程不安全的风险。
+- 总结
+    - 操作少量数据：使用 String
+    - 单线程操作字符串缓冲区下操作大量数据：使用 StringBuilder
+    - 多线程操作字符串缓冲区下操作大量数据：使用 StringBuffer
 
