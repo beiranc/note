@@ -530,7 +530,11 @@ Authorization: Bearer <token>
 
 ### RBAC 是什么？
 
+RBAC（Role-based access control）即基于角色的访问控制。通过取消用户和权限的直接关联，改为用户关联角色，角色关联权限的方法来间接地赋予用户权限，从而实现解耦。
 
+基本的 RBAC 如下图所示：
+
+![RBAC0](/Question.assets/RBAC0.jpg)
 
 ----
 
