@@ -801,3 +801,77 @@ ls、cat、cd、df、free、top、ps、pwd、touch、history、tar 等等。
     - 单线程操作字符串缓冲区下操作大量数据：使用 StringBuilder
     - 多线程操作字符串缓冲区下操作大量数据：使用 StringBuffer
 
+----
+
+```Java
+// RedisUtils.java
+class RedisUtils {
+    public Long incr(String key) {
+        return redisTemplate.opsForValue().increment(key);
+    }
+}
+
+// SerialNumberService.java
+interface SerialNumberService {
+    /**
+     * 序列号自增序列
+     */
+    String SERIAL_NUMBER = "serial.number:";
+
+    /**
+     * 依据两位业务码字符串,生成一个流水号,格式依照: yyyyMMdd{bizCode}{10位的自增序列号}
+     * @param bizCode 两位,00-99
+     * @return 20位的序列号
+     * @throws Exception
+     */
+    String generate(String bizCode) throws Exception;
+
+    //事实上，应该对bizCode做白名单验证,以免恶意伪造
+    default boolean isLegal(String bizCode) {
+        if (bizCode == null || bizCode.length() != 2) {
+            throw new RuntimeException("bizCode: " + bizCode + "异常");
+        }
+
+        if (Character.isDigit(bizCode.charAt(0)) && Character.isDigit(bizCode.charAt(1)))
+            return true;
+        return false;
+    }
+}
+
+// SerialNumberServiceImpl.java
+@Service("serialNumberService")
+public class SerialNumberServiceImpl implements SerialNumberService {
+    @Autowired
+    RedisUtils redisUtils;
+
+    @Override
+    public String generate(String bizCode) throws Exception {
+        /** 检查业务码 */
+        boolean isLegal = isLegal(bizCode);
+
+        if (!isLegal) {
+            throw new Exception("bizCode參数不合法");
+        }
+
+        /** 获取今天的日期:yyyyMMdd */
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        /** 构造redis的key */
+        String key = SERIAL_NUMBER + date;
+
+        /** 自增 */
+        long sequence = redisUtils.incr(key);
+
+        String seq = CustomStringUtil.getSequence(sequence);
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(date).append(bizCode).append(seq);
+
+        String serial = sb.toString();
+
+        return serial;
+    }
+}
+```
+
