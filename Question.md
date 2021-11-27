@@ -875,3 +875,25 @@ public class SerialNumberServiceImpl implements SerialNumberService {
 }
 ```
 
+----
+
+```json
+{
+  "companyId": 4838,
+  "createTime": "2021-07-02 15:59:01",
+  "description": "企业用户",
+  "expireTime": "2024-07-11 16:00:05",
+  "lastLoginTime": "2021-07-09 11:08:47",
+  "mobile": "15677399832",
+  "nickName": "企业ba95",
+  "password": "f5edcc567258c50ea6eb2e52365af4f1",
+  "pay": "1",
+  "sex": "2",
+  "status": "1",
+  "token": "539dbc71ef8cebb765b7f84b914a225c7a331fc8c8e14ab0d12a23441559ae1522df7ee15064163de16b785c0415591e5a88512e54e1c03b2dc51ff9157094d3cbb72f355a55122cabe5da37009e6ae95364f83805bfa43c178b4234464f58ea8b70101291d594a5d0cf4a167fa97af13228ab76908ee6e11388855f44b459ba526b8e8b56cbb4db2b2ad1ebd8e827e1870d12d4cd1bd8c2",
+  "userId": 479,
+  "username": "15677399832",
+  "roleId": "76"
+}
+```
+
